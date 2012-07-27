@@ -1,17 +1,17 @@
 package example.fileserver.repository;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-import com.google.inject.name.Named;
-import example.fileserver.util.FileSystemUtils;
-
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
+
+import example.fileserver.util.FileSystemUtils;
 
 /**
  * This repository implementation allows to specify two repository
@@ -71,8 +71,8 @@ public class FileSystemWithBackupRepository extends FileSystemRepository {
 
     private class Writer implements Runnable {
 
-        private String id;
-        private FileResource fileResource;
+        private final String id;
+        private final FileResource fileResource;
 
         private Writer(String id, FileResource fileResource) {
             this.id = id;

@@ -1,11 +1,8 @@
 package example.fileserver.resources;
 
-import com.meterware.httpunit.GetMethodWebRequest;
-import com.meterware.httpunit.PostMethodWebRequest;
-import com.meterware.httpunit.WebResponse;
-import example.fileserver.repository.RepositoryStorageException;
-import org.junit.Test;
-import org.xml.sax.SAXException;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,7 +14,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
-import static junit.framework.Assert.*;
+import org.junit.Test;
+import org.xml.sax.SAXException;
+
+import com.meterware.httpunit.GetMethodWebRequest;
+import com.meterware.httpunit.PostMethodWebRequest;
+import com.meterware.httpunit.WebResponse;
+
+import example.fileserver.repository.RepositoryStorageException;
 
 public class FileResourceResourceIntegrationTest extends AbstractResourceIntegrationTest
 {
@@ -25,7 +29,7 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
     private static final Logger LOG = Logger.getLogger(CLASS);
     private static final String URL = WEBAPP + FileResourceResource.RESOURCE + "/";
 
-    private long fixtureImageCRC = computeCRC32(new File(FIXTURE_IMAGE));
+    private final long fixtureImageCRC = computeCRC32(new File(FIXTURE_IMAGE));
     public static final Pattern URL_ID_EXTRACTOR = Pattern.compile(".*/(\\d+)/filename/.*");
 
 
@@ -38,17 +42,29 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
 
     private long computeCRC32(File file)
     {
+        InputStream inputStream = null;
         try {
-            InputStream inputStream = new FileInputStream(file);
+            inputStream = new FileInputStream(file);
             byte[] data = new byte[inputStream.available()];
             inputStream.read(data, 0, inputStream.available());
             return computeCRC32(data);
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            close(inputStream);
         }
         return 0;
     }
 
+    private void close(InputStream inputStream) {
+        try {
+            if (inputStream != null) {
+                inputStream.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     @Test
     public void postImage() throws IOException, SAXException, RepositoryStorageException {
         File originalFile = new File(FIXTURE_IMAGE);
