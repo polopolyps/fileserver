@@ -22,9 +22,9 @@ import com.meterware.httpunit.PostMethodWebRequest;
 import com.meterware.httpunit.WebResponse;
 
 import example.fileserver.repository.RepositoryStorageException;
+import example.fileserver.util.DeleteMethodWebRequest;
 
-public class FileResourceResourceIntegrationTest extends AbstractResourceIntegrationTest
-{
+public class FileResourceResourceIntegrationTest extends AbstractResourceIntegrationTest {
     private static final String CLASS = FileResourceResourceIntegrationTest.class.getName();
     private static final Logger LOG = Logger.getLogger(CLASS);
     private static final String URL = WEBAPP + FileResourceResource.RESOURCE + "/";
@@ -32,16 +32,13 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
     private final long fixtureImageCRC = computeCRC32(new File(FIXTURE_IMAGE));
     public static final Pattern URL_ID_EXTRACTOR = Pattern.compile(".*/(\\d+)/filename/.*");
 
-
-    private long computeCRC32(byte[] data)
-    {
+    private long computeCRC32(byte[] data) {
         CRC32 crc = new CRC32();
         crc.update(data);
         return crc.getValue();
     }
 
-    private long computeCRC32(File file)
-    {
+    private long computeCRC32(File file) {
         InputStream inputStream = null;
         try {
             inputStream = new FileInputStream(file);
@@ -65,13 +62,29 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
             e.printStackTrace();
         }
     }
+
+    private WebResponse uploadFile(String path) throws IOException, SAXException {
+        File originalFile = new File(path);
+        PostMethodWebRequest req = new PostMethodWebRequest(URL + TEST_IMAGE, new FileInputStream(originalFile), "image/jpeg");
+        WebResponse resp = wc.getResponse(req);
+        return resp;
+    }
+
+    private WebResponse getFile(String path) throws IOException, SAXException {
+        GetMethodWebRequest req = new GetMethodWebRequest(path);
+        WebResponse resp = wc.getResponse(req);
+        return resp;
+    }
+
+    private WebResponse deleteFile(String path) throws IOException, SAXException {
+        DeleteMethodWebRequest req = new DeleteMethodWebRequest(path);
+        WebResponse resp = wc.getResponse(req);
+        return resp;
+    }
+
     @Test
     public void postImage() throws IOException, SAXException, RepositoryStorageException {
-        File originalFile = new File(FIXTURE_IMAGE);
-        PostMethodWebRequest req =
-                new PostMethodWebRequest(URL + TEST_IMAGE, new FileInputStream(originalFile),
-                        "image/jpeg");
-        WebResponse resp = wc.getResponse(req);
+        WebResponse resp = uploadFile(FIXTURE_IMAGE);
         assertNotNull("Response was null", resp);
         assertEquals(201, resp.getResponseCode());
         String url = resp.getHeaderField("Location");
@@ -82,26 +95,40 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
         assertEquals("CRCs do not match", this.fixtureImageCRC, computeCRC32(repository.getFileResource(parseIdfromURL(url)).getData()));
     }
 
+    private int getFileIndex(String url) {
+        return Integer.valueOf(url.split("/")[url.split("/").length - 3]);
+    }
+
+    @Test
+    public void deleteImage() throws Exception {
+        WebResponse resp;
+        resp = uploadFile(FIXTURE_IMAGE);
+        String url = resp.getHeaderField("Location");
+        resp = deleteFile(url);
+        resp = getFile(url);
+        assertEquals(resp.getResponseCode(), 404);
+        int index = getFileIndex(url);
+        resp = uploadFile(FIXTURE_IMAGE);
+        url = resp.getHeaderField("Location");
+
+        assertEquals("Expecting newIndex to be directly following index.", getFileIndex(url), index + 1);
+    }
+
     @Test
     public void postBigImage() throws RepositoryStorageException, IOException, SAXException {
         File originalFile = new File(BIG_FIXTURE_IMAGE);
-        PostMethodWebRequest req =
-                new PostMethodWebRequest(URL + BIG_TEST_IMAGE, new FileInputStream(originalFile),
-                        "image/jpeg");
+        PostMethodWebRequest req = new PostMethodWebRequest(URL + BIG_TEST_IMAGE, new FileInputStream(originalFile), "image/jpeg");
         WebResponse resp = wc.getResponse(req);
         assertNotNull("Response was null", resp);
         assertEquals(201, resp.getResponseCode());
         String url = resp.getHeaderField("Location");
 
-        //assertEquals("wrong URL: " + url, URL + expectedId + "/filename/" + BIG_TEST_IMAGE, url);
         assertTrue("wrong URL: " + url, url.matches(URL + "\\d+" + "/filename/" + BIG_TEST_IMAGE));
 
         // Why is this easier than comparing file contents?
-        assertEquals(computeCRC32(originalFile),
-                computeCRC32(repository.getFileResource(parseIdfromURL(url)).getData()));
+        assertEquals(computeCRC32(originalFile), computeCRC32(repository.getFileResource(parseIdfromURL(url)).getData()));
 
     }
-
 
     @Test
     public void getImage() throws IOException, SAXException {
@@ -120,9 +147,7 @@ public class FileResourceResourceIntegrationTest extends AbstractResourceIntegra
     @Test
     public void wrongExtensionImage() throws IOException, SAXException {
         File originalFile = new File(WRONG_EXTENSION_FIXTURE_IMAGE);
-        PostMethodWebRequest postReq =
-                new PostMethodWebRequest(URL + WRONG_EXTENSION_TEST_IMAGE, new FileInputStream(
-                        originalFile), "image/gif");
+        PostMethodWebRequest postReq = new PostMethodWebRequest(URL + WRONG_EXTENSION_TEST_IMAGE, new FileInputStream(originalFile), "image/gif");
         WebResponse resp = wc.getResponse(postReq);
         assertNotNull("Response was null", resp);
         assertEquals(201, resp.getResponseCode());

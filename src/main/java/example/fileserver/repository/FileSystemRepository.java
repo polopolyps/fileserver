@@ -7,11 +7,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import example.fileserver.util.FileSystemUtils;
+
 import example.fileserver.mime.Metadata;
+import example.fileserver.util.FileSystemUtils;
 
 @Singleton
 public class FileSystemRepository implements Repository {
@@ -19,7 +21,7 @@ public class FileSystemRepository implements Repository {
     private static final Logger LOG = Logger.getLogger(CLASS);
 
     protected NamingScheme namingScheme;
-    private String repositoryDirectory;
+    private final String repositoryDirectory;
 
     public String getPath() {
         return this.repositoryDirectory;
@@ -104,6 +106,27 @@ public class FileSystemRepository implements Repository {
             throw new RepositoryStorageException("Could not open file " + repositoryDirectory + path + id, e);
         }
         return new FileResource(id, data);
+    }
+
+    @Override
+    public void deleteFileResource(String id) throws RepositoryStorageException {
+        String path = null;
+        try {
+            path = namingScheme.getPath(id);
+            File f = new File(repositoryDirectory + path + id);
+            f.delete(); // At this point the repository counts the file as
+                        // deleted. The rest is just sugar.
+
+
+            f = new File(repositoryDirectory + path + id + ".metadata");
+            OutputStream os = new FileOutputStream(f);
+            os.write("gone\n".getBytes());
+            os.close();
+        } catch (FileNotFoundException e) {
+            throw new RepositoryStorageException("Could locate file for id " + id, e);
+        } catch (IOException e) {
+            throw new RepositoryStorageException("Could update metadata for deletion of file " + id, e);
+        }
     }
 
     @Override

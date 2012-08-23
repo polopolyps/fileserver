@@ -1,13 +1,15 @@
 package example.fileserver.resources;
 
+import java.io.File;
+
+import org.junit.Before;
+
 import com.google.inject.Guice;
 import com.meterware.httpunit.WebConversation;
+
 import example.fileserver.guice.TestRepositoryModule;
 import example.fileserver.repository.FileSystemRepository;
 import example.fileserver.util.FileSystemUtils;
-import org.junit.Before;
-
-import java.io.File;
 
 
 public abstract class AbstractResourceIntegrationTest {
@@ -31,6 +33,7 @@ public abstract class AbstractResourceIntegrationTest {
     public void setUp() {
         repository =  Guice.createInjector(new TestRepositoryModule()).getInstance(FileSystemRepository.class);
         wc = new WebConversation();
+        wc.setExceptionsThrownOnErrorStatus(false);
 
         FileSystemUtils.deleteDirectory(new File(repository.getPath()));
         FileSystemUtils.createDirectory(repository.getPath());

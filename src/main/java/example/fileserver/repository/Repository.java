@@ -24,4 +24,11 @@ public interface Repository
      */
     public Metadata getMetadata(String id) throws RepositoryStorageException;
 
+    /**
+     * @throws RepositoryStorageException
+     *             if the underlying resource for some reason could not be found
+     *             or deleted.
+     */
+    public void deleteFileResource(String id) throws RepositoryStorageException;
+
 }

@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -12,16 +13,16 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
 import com.google.inject.Inject;
 
-import example.fileserver.repository.FileResource;
-import example.fileserver.util.ExpiresDateUtil;
 import example.fileserver.mime.MimeDetector;
+import example.fileserver.repository.FileResource;
 import example.fileserver.repository.Repository;
 import example.fileserver.repository.RepositoryStorageException;
+import example.fileserver.util.ExpiresDateUtil;
 
 @Path(FileResourceResource.RESOURCE + "/{id}{filename:(/filename/[^/]+?)?}")
 public class FileResourceResource {
@@ -32,8 +33,8 @@ public class FileResourceResource {
     @Context
     private UriInfo uriInfo;
 
-    private Repository repository;
-    private MimeDetector mimeDetector;
+    private final Repository repository;
+    private final MimeDetector mimeDetector;
 
     @Inject
     public FileResourceResource(Repository repository, MimeDetector mimeDetector) {
@@ -74,11 +75,22 @@ public class FileResourceResource {
         try {
             file = repository.getFileResource(id);
         } catch (RepositoryStorageException e) {
-            LOG.log(Level.INFO, "Failed request for " + uriInfo.getAbsolutePath(), e);
+            LOG.log(Level.INFO, "Failed request for " + uriInfo.getAbsolutePath());
             return Response.status(Status.NOT_FOUND).build();
         }
         return Response.ok(file.getData(), mimeDetector.getMimeType(file))
             .header("Expires", ExpiresDateUtil.getInfinateExpiresDate()).build();
+    }
+
+    @DELETE
+    public Response deleteFileResource(@PathParam("id") String id) {
+        try {
+            repository.deleteFileResource(id);
+            return Response.status(Status.NO_CONTENT).build();
+        } catch (RepositoryStorageException e) {
+            e.printStackTrace();
+            return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
 }
