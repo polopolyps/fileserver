@@ -10,7 +10,7 @@
     <filter-name>Guice Filter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>  <listener>
-    <listener-class>example.fileserver.guice.Application</listener-class>
+    <listener-class>com.polopoly.ps.fileserver.guice.Application</listener-class>
   </listener>
   <servlet>
     <servlet-name>ServletContainer</servlet-name>
