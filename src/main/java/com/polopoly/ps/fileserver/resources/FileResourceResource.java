@@ -1,7 +1,11 @@
 package com.polopoly.ps.fileserver.resources;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLConnection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -78,7 +82,7 @@ public class FileResourceResource {
             LOG.log(Level.INFO, "Failed request for " + uriInfo.getAbsolutePath());
             return Response.status(Status.NOT_FOUND).build();
         }
-        return Response.ok(file.getData(), mimeDetector.getMimeType(file))
+        return Response.ok(file.getData(), getContentType(file))
             .header("Expires", ExpiresDateUtil.getInfinateExpiresDate()).build();
     }
 
@@ -91,6 +95,23 @@ public class FileResourceResource {
             e.printStackTrace();
             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    private String getContentType(FileResource file) {
+        String mimeType = null;
+        try {
+            //This is slow (but probably faster than the old check)
+            java.io.InputStream is = new BufferedInputStream(new ByteArrayInputStream(file.getData()));
+            mimeType = URLConnection.guessContentTypeFromStream(is);
+            is.close();
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "Encountered exception while trying to determine mime type from file, message: " + e.getMessage());
+        }
+        if (mimeType == null || mimeType.isEmpty()) {
+            //Fall back to old check
+            mimeType = mimeDetector.getMimeType(file);
+        }
+        return mimeType;
     }
 
 }
